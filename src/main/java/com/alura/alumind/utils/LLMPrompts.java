@@ -23,4 +23,46 @@ public class LLMPrompts {
       5. Ensure the JSON is well-formed and valid.
       6. Return the sentiment, code and reason in portuguese and in the infinitive form.
       """;
+
+  public static final String WEEKLY_REPORT_PROMPT = """
+            You are an assistant specialized in feedback reports for the AluMind application (a mental health and wellness app).
+
+            Generate a weekly feedback report email for AluMind stakeholders, using the following information:
+
+            Report period: %s
+            Total feedback received: %d
+            Percentage of positive feedback: %.2f%%
+            Percentage of negative feedback: %.2f%%
+
+            Top requested features (in JSON format):
+            %s
+
+            Email requirements:
+            1. Use HTML to format the email professionally and in a visually appealing way
+            2. Include a header with the AluMind logo/name
+            3. Highlight positive and negative feedback statistics
+            4. List the top requested features, explaining why each one is important to users
+            5. End with a conclusion that encourages the team to continue improving the app
+            6. Use a professional but friendly tone
+            7. Respond only with the complete HTML for the email, ready to be sent
+            8, Return the email in portuguese
+            """;
 }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+
+  

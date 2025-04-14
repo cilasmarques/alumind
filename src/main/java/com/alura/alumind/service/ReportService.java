@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -41,6 +42,27 @@ public class ReportService {
         } catch (Exception e) {
             log.error("Error generating report", e);
             throw new RuntimeException("Error generating report", e);
+        }
+    }
+
+    public ReportResponse generateWeeklyReport(LocalDateTime startDate, LocalDateTime endDate) {
+        try {
+            long totalFeedbacks = feedbackRepository.countByDate(startDate, endDate);
+            long posCount = feedbackRepository.countByDateAndSentiment(startDate, endDate, SentimentType.POSITIVO);
+            long negCount = feedbackRepository.countByDateAndSentiment(startDate, endDate, SentimentType.NEGATIVO);
+            long incCount = feedbackRepository.countByDateAndSentiment(startDate, endDate,
+                    SentimentType.INCONCLUSIVO);
+
+            StatisticsDto statistics = computeStatistics(totalFeedbacks, posCount, negCount, incCount);
+            List<TopFeaturesDto> topFeatures = requestedFeatureRepository.findRFWithFeedbackIdsForDateRange(startDate, endDate);
+
+            return ReportResponse.builder()
+                    .statistics(statistics)
+                    .topFeatures(topFeatures)
+                    .build();
+        } catch (Exception e) {
+            log.error("Error generating weekly report", e);
+            throw new RuntimeException("Error generating weekly report", e);
         }
     }
 
