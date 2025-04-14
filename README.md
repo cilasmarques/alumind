@@ -85,8 +85,15 @@ email.weekly-report.recipients=stakeholders@exemplo.com
 ### Executando com Docker Compose
 
 ```bash
-docker-compose up
+docker-compose up -d
 ```
+
+### Buildando e executando com Docker Compose
+
+```bash
+docker-compose up --build
+```
+
 
 ## Endpoints da API
 
