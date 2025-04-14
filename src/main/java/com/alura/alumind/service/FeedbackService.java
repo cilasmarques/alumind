@@ -19,6 +19,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Service for handling user feedback processing and analysis
+ * 
+ * This service is responsible for:
+ * - Processing incoming feedback
+ * - Checking for spam or inappropriate content
+ * - Analyzing feedback sentiment using AI
+ * - Extracting feature requests from feedback
+ * - Persisting feedback and analysis results
+ * - Retrieving feedback information
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -29,6 +40,19 @@ public class FeedbackService {
 
     /// ======= Public methods ======= ///
 
+    /**
+     * Analyze and store user feedback
+     * 
+     * This method:
+     * 1. Checks for spam or inappropriate content
+     * 2. Analyzes feedback sentiment using the LLM
+     * 3. Extracts feature requests
+     * 4. Saves the feedback and analysis results to the database
+     * 
+     * @param request The feedback request containing user feedback text
+     * @return A DTO with feedback analysis results
+     * @throws IllegalArgumentException if the content is classified as spam
+     */
     @Transactional
     public FeedbackShortDto analyzeFeedback(FeedbackRequest request) {
         String content = request.getFeedback();
@@ -41,6 +65,13 @@ public class FeedbackService {
         return toShortDto(saved);
     }
 
+    /**
+     * Retrieve detailed feedback information by ID
+     * 
+     * @param id The unique identifier of the feedback
+     * @return A DTO with complete feedback information
+     * @throws ResponseStatusException if the feedback is not found
+     */
     public FeedbackFullDto getFeedbackById(Long id) {
         Feedback feedback = feedbackRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Feedback not found"));
@@ -50,6 +81,14 @@ public class FeedbackService {
 
     /// ======= Private methods ======= ///
 
+    /**
+     * Check if the feedback content is spam or inappropriate
+     * 
+     * Uses an LLM to analyze the content and determine if it should be rejected
+     * 
+     * @param content The feedback content to check
+     * @throws IllegalArgumentException if the content is classified as spam
+     */
     private void checkSpam(String content) {
         try {
             String prompt = String.format(LLMPrompts.SPAM_ANALYSIS_PROMPT, content);
@@ -67,6 +106,14 @@ public class FeedbackService {
         }
     }
 
+    /**
+     * Analyze feedback content using the LLM
+     * 
+     * Sends the feedback to the LLM for sentiment analysis and feature extraction
+     * 
+     * @param content The feedback content to analyze
+     * @return A JsonNode containing the analysis results
+     */
     private JsonNode analyzeWithLLM(String content) {
         try {
             String prompt = String.format(LLMPrompts.FEEDBACK_ANALYSIS_PROMPT, content);
@@ -77,6 +124,13 @@ public class FeedbackService {
         }
     }
 
+    /**
+     * Build a Feedback entity from content and analysis results
+     * 
+     * @param content The original feedback content
+     * @param analysis The LLM analysis results
+     * @return A Feedback entity ready to be persisted
+     */
     private Feedback buildFeedback(String content, JsonNode analysis) {
         Feedback feedback = new Feedback();
         feedback.setContent(content);
@@ -95,6 +149,12 @@ public class FeedbackService {
         return feedback;
     }
 
+    /**
+     * Convert a Feedback entity to a short DTO
+     * 
+     * @param feedback The Feedback entity to convert
+     * @return A short DTO with basic feedback information
+     */
     private FeedbackShortDto toShortDto(Feedback feedback) {
         List<RequestedFeatures> features = feedback.getRequestedFeatures()
                 .stream()
@@ -111,6 +171,12 @@ public class FeedbackService {
                 .build();
     }
 
+    /**
+     * Convert a Feedback entity to a full DTO
+     * 
+     * @param feedback The Feedback entity to convert
+     * @return A full DTO with complete feedback information
+     */
     private FeedbackFullDto toFullDto(Feedback feedback) {
         List<RequestedFeatures> features = feedback.getRequestedFeatures()
                 .stream()

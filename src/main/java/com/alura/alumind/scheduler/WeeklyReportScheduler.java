@@ -16,6 +16,13 @@ import java.time.LocalDateTime;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 
+/**
+ * Scheduler for generating and sending weekly feedback reports
+ * 
+ * This component is responsible for automatically generating weekly reports
+ * and sending them to stakeholders via email. The reports include feedback
+ * statistics and trending feature requests for the past week.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,6 +34,16 @@ public class WeeklyReportScheduler {
 
     /// ======= Public methods ======= ///
 
+    /**
+     * Send a weekly feedback report via email
+     * 
+     * This method is scheduled to run every Sunday at 8:00 AM.
+     * It generates a report for the past week (Monday to Sunday),
+     * formats it as an HTML email, and sends it to configured recipients.
+     * 
+     * The email content is generated using an LLM for better formatting
+     * and human-readable analysis.
+     */
     @Scheduled(cron = "0 0 8 * * SUN") // Every Sunday at 8:00 AM
     public void sendWeeklyReport() {
         try {
@@ -48,6 +65,16 @@ public class WeeklyReportScheduler {
 
     /// ======= Private methods ======= ///
 
+        /**
+     * Generate formatted HTML email content for the weekly report
+     * 
+     * Uses an LLM to create a well-formatted and HTML email
+     * from the raw report data. 
+     * 
+     * @param reportData The report data to include in the email
+     * @param reportPeriod The period covered by the report
+     * @return HTML-formatted email content
+     */
     private String generateEmailContent(ReportResponse reportData, String reportPeriod) {
         String prompt = String.format(
                 LLMPrompts.WEEKLY_REPORT_PROMPT,

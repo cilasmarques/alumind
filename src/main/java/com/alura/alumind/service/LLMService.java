@@ -10,6 +10,18 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for interacting with Large Language Models (LLMs)
+ * 
+ * This service provides methods to send prompts to OpenAI models and process
+ * the responses. It supports both raw text responses and JSON-formatted responses.
+ * 
+ * The service is used for:
+ * - Analyzing feedback sentiment
+ * - Extracting feature requests from feedback
+ * - Detecting spam in feedback
+ * - Generating weekly report emails
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
