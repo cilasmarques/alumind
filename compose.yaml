@@ -14,8 +14,6 @@ services:
   # Banco de dados
   db:
     image: postgres:14
-    ports:
-      - "5432:5432"
     environment:
       - 'POSTGRES_DB=alumindDB'
       - 'POSTGRES_PASSWORD=alumindSecret'

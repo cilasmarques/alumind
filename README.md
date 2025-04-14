@@ -70,30 +70,44 @@ email.weekly-report.recipients=stakeholders@exemplo.com
 
 ## Compilação e Execução
 
-### Executando com Maven
-
+### Rodando com container
 ```bash
+docker compose up -d
+```
+
+### Parando o container
+```bash
+docker compose down 
+```
+
+### Rodando local
+1. Instale as dependências
+```bash   
+sudo apt install maven
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+```
+
+2. Crie o banco de dados e o usuário:
+```bash
+# Acesse o PostgreSQL como superusuário
+sudo -u postgres psql
+
+# No prompt do PostgreSQL, execute:
+CREATE USER "alumindUser" WITH PASSWORD 'alumindSecret';
+CREATE DATABASE "alumindDB";
+GRANT ALL PRIVILEGES ON DATABASE "alumindDB" TO "alumindUser";
+ALTER USER "alumindUser" WITH SUPERUSER;
+
+# Para sair do prompt do PostgreSQL
+\q
+```
+
+3. Compile e execute usando Maven:
+```bash
+./mvnw clean install -DskipTests
 ./mvnw spring-boot:run
 ```
-
-### Gerando um JAR
-
-```bash
-./mvnw clean package
-```
-
-### Executando com Docker Compose
-
-```bash
-docker-compose up -d
-```
-
-### Buildando e executando com Docker Compose
-
-```bash
-docker-compose up --build
-```
-
 
 ## Endpoints da API
 
