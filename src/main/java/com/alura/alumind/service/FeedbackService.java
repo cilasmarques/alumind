@@ -32,6 +32,7 @@ public class FeedbackService {
     @Transactional
     public FeedbackShortDto analyzeFeedback(FeedbackRequest request) {
         String content = request.getFeedback();
+        checkSpam(content);
 
         JsonNode LLMAnalysis = analyzeWithLLM(content);
         Feedback feedback = buildFeedback(content, LLMAnalysis);
@@ -48,6 +49,23 @@ public class FeedbackService {
     }
 
     /// ======= Private methods ======= ///
+
+    private void checkSpam(String content) {
+        try {
+            String prompt = String.format(LLMPrompts.SPAM_ANALYSIS_PROMPT, content);
+            JsonNode result = llmService.sendPromptAndParseJson(prompt);
+
+            if (result.has("isSpam") && result.get("isSpam").asBoolean()) {
+                log.warn("Spam detected: {}", content);
+                throw new IllegalArgumentException("Content classified as spam");
+            }
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error checking spam: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Error validating content", e);
+        }
+    }
 
     private JsonNode analyzeWithLLM(String content) {
         try {
