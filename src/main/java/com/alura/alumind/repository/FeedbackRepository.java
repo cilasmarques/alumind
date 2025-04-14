@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Repository
 public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
@@ -14,6 +13,9 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     @Query("SELECT COUNT(f) FROM Feedback f WHERE f.sentiment = :sentiment")
     long countBySentiment(Feedback.SentimentType sentiment);
 
-    @Query("SELECT f FROM Feedback f WHERE f.createdAt BETWEEN :start AND :end")
-    List<Feedback> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    @Query("SELECT COUNT(f) FROM Feedback f WHERE f.createdAt BETWEEN :start AND :end")
+    long countByDate(LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT COUNT(f) FROM Feedback f WHERE f.createdAt BETWEEN :start AND :end AND f.sentiment = :sentiment")
+    long countByDateAndSentiment(LocalDateTime start, LocalDateTime end, Feedback.SentimentType sentiment);
 }

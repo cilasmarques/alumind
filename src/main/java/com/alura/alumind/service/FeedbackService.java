@@ -1,17 +1,23 @@
 package com.alura.alumind.service;
 
 import com.alura.alumind.dto.FeedbackRequest;
-import com.alura.alumind.dto.FeedbackResponse;
+import com.alura.alumind.dto.FeedbackResponse.FeedbackFullDto;
+import com.alura.alumind.dto.FeedbackResponse.FeedbackShortDto;
+import com.alura.alumind.dto.FeedbackResponse.RequestedFeatures;
 import com.alura.alumind.model.Feedback;
 import com.alura.alumind.model.RequestedFeature;
 import com.alura.alumind.repository.FeedbackRepository;
+import com.alura.alumind.utils.LLMPrompts;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,52 +27,87 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final LLMService llmService;
 
+    /// ======= Public methods ======= ///
+
     @Transactional
-    public FeedbackResponse analyzeFeedback(FeedbackRequest request) {
-        String feedbackContent = request.getFeedback();
-        String prompt = buildFeedbackAnalysisPrompt(feedbackContent);
-        JsonNode analysisJson = llmService.sendPromptAndParseJson(prompt);
+    public FeedbackShortDto analyzeFeedback(FeedbackRequest request) {
+        String content = request.getFeedback();
 
-        Feedback feedback = Feedback.builder()
-                .content(feedbackContent)
-                .sentiment(Feedback.SentimentType.valueOf(analysisJson.get("sentiment").asText()))
-                .createdAt(LocalDateTime.now())
-                .build();
+        JsonNode LLMAnalysis = analyzeWithLLM(content);
+        Feedback feedback = buildFeedback(content, LLMAnalysis);
+        Feedback saved = feedbackRepository.save(feedback);
 
-        JsonNode featuresNode = analysisJson.get("requested_features");
-        if (featuresNode != null && featuresNode.isArray()) {
-            for (JsonNode featureNode : featuresNode) {
-                RequestedFeature feature = RequestedFeature.builder()
-                        .code(featureNode.get("code").asText())
-                        .reason(featureNode.get("reason").asText())
-                        .build();
-                feedback.addRequestedFeature(feature);
+        return toShortDto(saved);
+    }
+
+    public FeedbackFullDto getFeedbackById(Long id) {
+        Feedback feedback = feedbackRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Feedback not found"));
+
+        return toFullDto(feedback);
+    }
+
+    /// ======= Private methods ======= ///
+
+    private JsonNode analyzeWithLLM(String content) {
+        try {
+            String prompt = String.format(LLMPrompts.FEEDBACK_ANALYSIS_PROMPT, content);
+            return llmService.sendPromptAndParseJson(prompt);
+        } catch (Exception e) {
+            log.error("LLM analysis error: {}", e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "LLM analysis failed: " + e.getMessage());
+        }
+    }
+
+    private Feedback buildFeedback(String content, JsonNode analysis) {
+        Feedback feedback = new Feedback();
+        feedback.setContent(content);
+        feedback.setCreatedAt(LocalDateTime.now());
+        feedback.setSentiment(Feedback.SentimentType.valueOf(analysis.get("sentiment").asText()));
+
+        if (analysis.has("requestedFeatures")) {
+            for (JsonNode feature : analysis.get("requestedFeatures")) {
+                RequestedFeature rf = new RequestedFeature();
+                rf.setCode(feature.get("code").asText());
+                rf.setReason(feature.get("reason").asText());
+                feedback.addRequestedFeature(rf);
             }
         }
 
-        Feedback savedFeedback = feedbackRepository.save(feedback);
-        return FeedbackResponse.fromEntity(savedFeedback);
+        return feedback;
     }
-    
-    private String buildFeedbackAnalysisPrompt(String feedbackContent) {
-        return "Analyze the following user feedback for the AluMind app (a mental health and wellness application):\n"
-                + feedbackContent + "\n"
-                + "Return the analysis in JSON format with the following structure:\n"
-                + "{\n"
-                + "  \"sentiment\": \"[POSITIVO/NEGATIVO/INCONCLUSIVO]\",\n"
-                + "  \"requested_features\": [\n"
-                + "    {\n"
-                + "      \"code\": \"[UNIQUE_FEATURE_CODE]\",\n"
-                + "      \"reason\": \"[REASON WHY THE FEATURE IS IMPORTANT]\"\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}\n\n"
-                + "Rules for analysis:\n"
-                + "1. The sentiment must be classified as \"POSITIVO\", \"NEGATIVO\", or \"INCONCLUSIVO\" based on the overall tone of the feedback.\n"
-                + "2. Identify possible requested features in the feedback and, for each one, create a unique code in UPPERCASE_WITH_UNDERSCORES format (e.g., \"EDIT_PROFILE\").\n"
-                + "3. For each feature, briefly explain why implementing it would be important from the user's perspective.\n"
-                + "4. If there are no requested features, return an empty list for \"requested_features\".\n"
-                + "5. Ensure the JSON is well-formed and valid.\n"
-                + "6. Return the sentiment, code and reason in portuguese.\n";
+
+    private FeedbackShortDto toShortDto(Feedback feedback) {
+        List<RequestedFeatures> features = feedback.getRequestedFeatures()
+                .stream()
+                .map(f -> RequestedFeatures.builder()
+                        .code(f.getCode())
+                        .reason(f.getReason())
+                        .build())
+                .toList();
+
+        return FeedbackShortDto.builder()
+                .id(feedback.getId())
+                .sentiment(feedback.getSentiment().name())
+                .requestedFeatures(features)
+                .build();
+    }
+
+    private FeedbackFullDto toFullDto(Feedback feedback) {
+        List<RequestedFeatures> features = feedback.getRequestedFeatures()
+                .stream()
+                .map(f -> RequestedFeatures.builder()
+                        .code(f.getCode())
+                        .reason(f.getReason())
+                        .build())
+                .toList();
+
+        return FeedbackFullDto.builder()
+                .id(feedback.getId())
+                .content(feedback.getContent())
+                .sentiment(feedback.getSentiment().name())
+                .createdAt(feedback.getCreatedAt().toString())
+                .requestedFeatures(features)
+                .build();
     }
 }

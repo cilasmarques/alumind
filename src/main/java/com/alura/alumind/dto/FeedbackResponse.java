@@ -1,40 +1,46 @@
 package com.alura.alumind.dto;
 
-import com.alura.alumind.model.Feedback;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class FeedbackResponse {
 
-    private Long id;
-    private String sentiment;
-    private List<FeatureDto> requested_features;
-
-    public static FeedbackResponse fromEntity(Feedback feedback) {
-        return FeedbackResponse.builder()
-                .id(feedback.getId())
-                .sentiment(feedback.getSentiment().name())
-                .requested_features(
-                        feedback.getRequestedFeatures().stream()
-                                .map(rf -> new FeatureDto(rf.getCode(), rf.getReason()))
-                                .collect(Collectors.toList())
-                )
-                .build();
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FeedbackShortDto {
+        private Long id;
+        private String sentiment;
+        private List<RequestedFeatures> requestedFeatures;
     }
 
     @Data
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class FeatureDto {
+    public static class FeedbackFullDto {
+        private Long id;
+        private String content;
+        private String sentiment;
+        private String createdAt;
+        private List<RequestedFeatures> requestedFeatures;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RequestedFeatures {
         private String code;
         private String reason;
     }

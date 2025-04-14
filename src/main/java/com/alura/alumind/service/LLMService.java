@@ -26,16 +26,9 @@ public class LLMService {
      */
     public String sendPrompt(String promptContent) {
         ChatResponse aiResponse = chatModel.call(new Prompt(promptContent));
-        
-        return aiResponse
-                .getResult()
-                .getOutput()
-                .getText()
-                .replaceAll("(?s)```json\\s*", "")
-                .replaceAll("```", "")
-                .trim();
+        return aiResponse.getResult().getOutput().getText().trim();
     }
-    
+
     /**
      * Send a prompt to the OpenAI model and parse the response as JSON
      *
@@ -44,8 +37,10 @@ public class LLMService {
      * @throws RuntimeException if the response cannot be parsed as JSON
      */
     public JsonNode sendPromptAndParseJson(String promptContent) {
-        String responseContent = sendPrompt(promptContent);
-        
+        String responseContent = sendPrompt(promptContent)
+                .replaceAll("(?s)```json\\s*", "")
+                .replaceAll("```", "");
+
         try {
             return objectMapper.readTree(responseContent);
         } catch (JsonProcessingException e) {

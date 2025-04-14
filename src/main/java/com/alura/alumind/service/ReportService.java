@@ -1,18 +1,20 @@
 package com.alura.alumind.service;
 
 import com.alura.alumind.dto.ReportResponse;
-import com.alura.alumind.model.Feedback;
-import com.alura.alumind.model.RequestedFeature;
+import com.alura.alumind.dto.ReportResponse.StatisticsDto;
+import com.alura.alumind.dto.ReportResponse.TopFeaturesDto;
+import com.alura.alumind.model.Feedback.SentimentType;
 import com.alura.alumind.repository.FeedbackRepository;
 import com.alura.alumind.repository.RequestedFeaturesRepository;
+
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReportService {
@@ -20,46 +22,44 @@ public class ReportService {
     private final FeedbackRepository feedbackRepository;
     private final RequestedFeaturesRepository requestedFeatureRepository;
 
+    /// ======= Public methods ======= ///
+
     public ReportResponse generateReport() {
-        long totalFeedbacks = feedbackRepository.count();
-        long positiveCount = feedbackRepository.countBySentiment(Feedback.SentimentType.POSITIVO);
-        long negativeCount = feedbackRepository.countBySentiment(Feedback.SentimentType.NEGATIVO);
-        long inconclusiveCount = feedbackRepository.countBySentiment(Feedback.SentimentType.INCONCLUSIVO);
+        try {
+            long totalFeedbacks = feedbackRepository.count();
+            long posCount = feedbackRepository.countBySentiment(SentimentType.POSITIVO);
+            long negCount = feedbackRepository.countBySentiment(SentimentType.NEGATIVO);
+            long incCount = feedbackRepository.countBySentiment(SentimentType.INCONCLUSIVO);
 
-        double percentPositive = totalFeedbacks > 0 ? (double) positiveCount / totalFeedbacks * 100 : 0;
-        double percentNegative = totalFeedbacks > 0 ? (double) negativeCount / totalFeedbacks * 100 : 0;
-        double percentInconclusive = totalFeedbacks > 0 ? (double) inconclusiveCount / totalFeedbacks * 100 : 0;
+            StatisticsDto statistics = computeStatistics(totalFeedbacks, posCount, negCount, incCount);
+            List<TopFeaturesDto> topFeatures = requestedFeatureRepository.findRFWithFeedbackIds();
 
-        ReportResponse.StatisticsDto statistics = ReportResponse.StatisticsDto.builder()
+            return ReportResponse.builder()
+                    .statistics(statistics)
+                    .topFeatures(topFeatures)
+                    .build();
+        } catch (Exception e) {
+            log.error("Error generating report", e);
+            throw new RuntimeException("Error generating report", e);
+        }
+    }
+
+    /// ======= Private methods ======= ///
+
+    private StatisticsDto computeStatistics(long totalFeedbacks, long posCount, long negCount, long incCount) {
+        double percentPositive = computePercentage(posCount, totalFeedbacks);
+        double percentNegative = computePercentage(negCount, totalFeedbacks);
+        double percentInconclusive = computePercentage(incCount, totalFeedbacks);
+
+        return StatisticsDto.builder()
                 .totalFeedbacks(totalFeedbacks)
-                .percentPositive(Math.round(percentPositive * 100.0) / 100.0)
-                .percentNegative(Math.round(percentNegative * 100.0) / 100.0)
-                .percentInconclusive(Math.round(percentInconclusive * 100.0) / 100.0)
+                .percentPositive(percentPositive)
+                .percentNegative(percentNegative)
+                .percentInconclusive(percentInconclusive)
                 .build();
+    }
 
-        // Get top requested features
-        List<Object[]> topFeaturesData = requestedFeatureRepository.findMostRequestedFeatures();
-        List<ReportResponse.TopFeatureDto> topFeatures = new ArrayList<>();
-        
-        Map<String, String> featureReasons = new HashMap<>();
-        List<Feedback> allFeedbacks = feedbackRepository.findAll();
-        for (Feedback feedback : allFeedbacks) {
-            for (RequestedFeature feature : feedback.getRequestedFeatures()) {
-                featureReasons.put(feature.getCode(), feature.getReason());
-            }
-        }
-
-        for (Object[] data : topFeaturesData) {
-            String featureCode = (String) data[0];
-            Long count = ((Number) data[1]).longValue();
-            String reason = featureReasons.getOrDefault(featureCode, "No reason provided");
-            
-            topFeatures.add(new ReportResponse.TopFeatureDto(featureCode, count, reason));
-        }
-
-        return ReportResponse.builder()
-                .statistics(statistics)
-                .topFeatures(topFeatures)
-                .build();
+    private double computePercentage(long count, long total) {
+        return total > 0 ? (double) count / total * 100 : 0;
     }
 }
