@@ -102,6 +102,8 @@ docker-compose up
 
 - `GET /reports` - Gerar e recuperar um relatório atual de feedback
 
+- `GET /reports/sendEmail` - **[PENSADO APENAS PARA TESTES]** Simula o envio de um relatório semanal por e-mail utilizando a data atual como referência. Este endpoint é destinado exclusivamente para testes.
+
 ## Arquitetura
 
 - **Controllers:** Gerenciam requisições e respostas HTTP
