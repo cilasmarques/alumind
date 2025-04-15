@@ -105,7 +105,7 @@ ALTER USER "alumindUser" WITH SUPERUSER;
 
 3. Compile e execute usando Maven:
 ```bash
-./mvnw clean install -DskipTests
+./mvnw clean install
 ./mvnw spring-boot:run
 ```
 

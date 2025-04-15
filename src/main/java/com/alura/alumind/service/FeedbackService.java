@@ -56,6 +56,7 @@ public class FeedbackService {
     @Transactional
     public FeedbackShortDto analyzeFeedback(FeedbackRequest request) {
         String content = request.getFeedback();
+        validateContent(content);
         checkSpam(content);
 
         JsonNode LLMAnalysis = analyzeWithLLM(content);
@@ -80,6 +81,20 @@ public class FeedbackService {
     }
 
     /// ======= Private methods ======= ///
+
+    /**
+     * Validate feedback content
+     * 
+     * Checks if the content is empty or too short
+     * 
+     * @param content The feedback content to validate
+     * @throws IllegalArgumentException if the content is invalid
+     */
+    private void validateContent(String content) {
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("Feedback content cannot be empty");
+        }
+    }   
 
     /**
      * Check if the feedback content is spam or inappropriate
